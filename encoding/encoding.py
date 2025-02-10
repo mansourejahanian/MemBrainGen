@@ -8,10 +8,8 @@ from tqdm import tqdm
 import pickle
 import math
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
-import numpy_utility as pnu
-from file_utility import save_stuff, flatten_dict, embed_dict
+import src.numpy_utility as pnu
+from src.file_utility import save_stuff, flatten_dict, embed_dict
 
 import torch
 import torch.nn as nn
@@ -19,8 +17,7 @@ import torch.nn.init as I
 import torch.nn.functional as F
 import torch.optim as optim
 
-from models.alexnet import Alexnet_fmaps
-from models.resnet import Resnet_fmaps
+from torchmodel.models.alexnet import Alexnet_fmaps
 
 def iterate_range(start, length, batchsize):
     batch_count = int(length // batchsize )
@@ -129,21 +126,17 @@ class Torch_filter_fmaps(nn.Module):
         return [torch.index_select(torch.cat([_fmaps[l] for l in lm], 1), dim=1, index=fm) for lm,fm in zip(self.lmask, self.fmask)]
 
 
-def load_encoding_neurogen(subject, fmap_name='alexnet', device=torch.device("cpu")):
+def load_encoding(subject, model_name='dnn_fwrf',device=torch.device("cpu")):
     
     voxel_batch_size = 24
     
-    root_dir = "/home/hhan228/memorability/Willow/neurogen_output/"
-    output_dir = root_dir + f"{fmap_name}/S{subject:02d}/"
-    
+    root_dir = "./"
+    output_dir = root_dir + "output/S%02d/%s/" % (subject,model_name) 
     model_params_set = h5py.File(output_dir + 'model_params.h5py', 'r')
     model_params = embed_dict({k: np.copy(d) for k,d in model_params_set.items()})
     model_params_set.close()
-
-    if fmap_name == "resnet":
-        _fmaps_fn = Resnet_fmaps().to(device)
-    else:
-        _fmaps_fn = Alexnet_fmaps().to(device)
+    
+    _fmaps_fn = Alexnet_fmaps().to(device)
     _fmaps_fn = Torch_filter_fmaps(_fmaps_fn, model_params['lmask'], model_params['fmask'])
     
     params = [p[:voxel_batch_size] if p is not None else None for p in model_params['params']]
@@ -159,34 +152,4 @@ def load_encoding_neurogen(subject, fmap_name='alexnet', device=torch.device("cp
     #nt, nv = len(data), len(params[0])
     
     return _fwrf_fn, _fmaps_fn
-
-
-def load_encoding(model_params, fmap_name='alexnet', device=torch.device("cpu")):
     
-    voxel_batch_size = 24
-    
-    # root_dir = os.getcwd()
-    # output_dir = root_dir + "/neurogen/output/S%02d/%s/" % (subject,model_name)
-    # model_params_set = h5py.File(output_dir + 'model_params.h5py', 'r')
-    # model_params = embed_dict({k: np.copy(d) for k,d in model_params_set.items()})
-    # model_params_set.close()
-
-    if fmap_name == "resnet":
-        _fmaps_fn = Resnet_fmaps().to(device)
-    else:
-        _fmaps_fn = Alexnet_fmaps().to(device)
-    _fmaps_fn = Torch_filter_fmaps(_fmaps_fn, model_params['lmask'], model_params['fmask'])
-    
-    params = [p[:voxel_batch_size] if p is not None else None for p in model_params['params']]
-    
-    _fwrf_fn  = Torch_fwRF_voxel_block(_fmaps_fn, params, _nonlinearity=None, input_shape=(1,3,227,227), aperture=1.0, device=device)
-    with torch.no_grad():
-        _fwrf_fn.load_voxel_block(*[p[0:voxel_batch_size] if p is not None else None for p in model_params['params']])
-    
-    
-    #device = next(_fmaps_fn.parameters()).device
-    #_params = [_p for _p in _fwrf_fn.parameters()]
-    #voxel_batch_size = _params[0].size()[0]    
-    #nt, nv = len(data), len(params[0])
-    
-    return _fwrf_fn, _fmaps_fn

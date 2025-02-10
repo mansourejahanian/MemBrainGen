@@ -8,17 +8,14 @@ from tqdm import tqdm
 import pickle
 import math
 
-import numpy_utility as pnu
+import src.numpy_utility as pnu
 
 import torch
 import torch.nn as nn
 import torch.nn.init as I
 import torch.nn.functional as F
 import torch.optim as optim
-from numpy_utility import iterate_range
-
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
+from src.numpy_utility import iterate_range
 
 def get_value(_x):
     return np.copy(_x.data.cpu().numpy())
@@ -203,8 +200,8 @@ def learn_params_ridge_regression(data, voxels, _fmaps_fn, models, lambdas, aper
     print ('---------------------------------------')
     #############################################################################        
     ### Create full model value buffers    
-    best_models = np.full(shape=(nv,), fill_value=-1, dtype=np.int_)   
-    best_lambdas = np.full(shape=(nv,), fill_value=-1, dtype=np.int_)
+    best_models = np.full(shape=(nv,), fill_value=-1, dtype=np.int32)   
+    best_lambdas = np.full(shape=(nv,), fill_value=-1, dtype=np.int32)
     best_losses = np.full(fill_value=np.inf, shape=(nv), dtype=dtype)
     best_w_params = np.zeros(shape=(nv, nf), dtype=dtype)
     if add_bias: # add bias to the parameters
